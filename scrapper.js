@@ -1,39 +1,29 @@
 const puppeteer = require('puppeteer');
 const { writeRecord } = require('./csvWorker');
 
-const scrapData = data => Promise.all(data.map(el => scrapRow(el)));
-
 const waiter = async page => {
-  function getRandomInt(max) {
-    return Math.floor(Math.random() * Math.floor(max));
-  }
+  const getRandomInt =(max) => Math.floor(Math.random() * Math.floor(max));
   await page.waitFor(getRandomInt(7));
 };
 
 const getPageByUrl = async (browser, url) => {
   const pages = await browser.pages();
-  const page = pages.find(el => el.url() == url);
-  return page;
+  return  pages.find(el => el.url() == url);
 };
 
 const scrapDataByBatch = async data => {
   try {
-    const vpnServers = [
+    const proxyServers = [
       '159.203.87.130:3128',
       '165.22.236.64:8080',
       '167.99.63.67:8888',
       '159.203.87.130:3128'
     ];
-    for (let i = 5; i < data.length; i += 1) {
-      // const promises = [
-      await scrapRow(data[i], vpnServers[0], i);
-      //   scrapRow(data[i + 1], vpnServers[1], i + 1),
-      //   scrapRow(data[i + 2], vpnServers[2], i + 2),
-      //   scrapRow(data[i + 3], vpnServers[3], i + 3)
-      // ];
-      // await Promise.all(promises);
+    for (let i = 1; i < data.length; i += 1) {
+      await scrapRow(data[i], proxyServers[1], i);
     }
-  } catch (e) {
+  }
+  catch (e) {
     console.log('error', e);
   }
 };
@@ -50,7 +40,6 @@ const scrapRow = async (
       args: [`--proxy-server=https=${server}`]
     });
     browser.on('targetcreated', target => {
-      console.log('created', target);
       return target.page();
     });
     const page = await browser.newPage();
@@ -72,8 +61,9 @@ const scrapRow = async (
     await browser.close();
     console.log('position', position);
     console.log('id', id);
-  } catch (e) {
-    console.log('abra', e);
+  }
+  catch (e) {
+    console.error('scrapRow error', e);
     return undefined;
   }
 };
@@ -116,12 +106,10 @@ const getBlocksOnPage = async (page, browser, url) => {
   await page.waitForNavigation({ waitUntil: 'networkidle0' });
   const urls = await page.evaluate(getElementsOnPage);
   const products = [];
-  // await newPage.goto(urls[i]);
   for (let i = 0; i < urls.length; i++) {
-    // const newPage = await browser.newPage();
     await page.evaluate(() => {
-      setInterval(slctr => {
-        document.querySelector(slctr).scrollBy(0, 10);
+      setInterval(selector => {
+        document.querySelector(selector).scrollBy(0, 10);
       }, 100);
     }, urls[i].selector);
     await waiter(page);
@@ -129,11 +117,8 @@ const getBlocksOnPage = async (page, browser, url) => {
       selector => document.querySelector(selector).click(),
       urls[i].selector
     );
-
-    console.log('here0');
     await page.waitFor(1000);
     const newPage = await getPageByUrl(browser, urls[i].href);
-    const pagessi = await browser.pages();
     const data = await getMerchant(newPage, url);
     if (Object.keys(data).length) {
       products.push(data);
@@ -170,8 +155,9 @@ const getMerchant = async (page, url) => {
     }
     await page.close();
     return response;
-  } catch (e) {
-    console.error('get merchant:', e);
+  }
+  catch (e) {
+    console.error('get merchant error:', e);
     return {};
   }
 };

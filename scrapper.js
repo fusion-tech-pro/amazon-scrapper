@@ -3,6 +3,13 @@ const { writeRecord } = require('./csvWorker');
 
 const scrapData = data => Promise.all(data.map(el => scrapRow(el)));
 
+const waiter = async page => {
+  function getRandomInt(max) {
+    return Math.floor(Math.random() * Math.floor(max));
+  }
+  await page.waitFor(getRandomInt(7));
+};
+
 const getPageByUrl = async (browser, url) => {
   const pages = await browser.pages();
   const page = pages.find(el => el.url() == url);
@@ -17,14 +24,14 @@ const scrapDataByBatch = async data => {
       '167.99.63.67:8888',
       '159.203.87.130:3128'
     ];
-    for (let i = 1; i < data.length; i += 4) {
-      const promises = [
-        scrapRow(data[i], vpnServers[0], i),
-        scrapRow(data[i + 1], vpnServers[1], i + 1),
-        scrapRow(data[i + 2], vpnServers[2], i + 2),
-        scrapRow(data[i + 3], vpnServers[3], i + 3)
-      ];
-      await Promise.all(promises);
+    for (let i = 5; i < data.length; i += 1) {
+      // const promises = [
+      await scrapRow(data[i], vpnServers[0], i);
+      //   scrapRow(data[i + 1], vpnServers[1], i + 1),
+      //   scrapRow(data[i + 2], vpnServers[2], i + 2),
+      //   scrapRow(data[i + 3], vpnServers[3], i + 3)
+      // ];
+      // await Promise.all(promises);
     }
   } catch (e) {
     console.log('error', e);
@@ -39,7 +46,7 @@ const scrapRow = async (
   try {
     const browser = await puppeteer.launch({
       // devtools: true,
-      // headless: false,
+      headless: false,
       args: [`--proxy-server=https=${server}`]
     });
     browser.on('targetcreated', target => {
@@ -94,6 +101,7 @@ const getElementsOnPage = () => {
     let urlElement = elements[i].getElementsByClassName(
       'a-link-normal a-text-normal'
     )[0];
+    urlElement.setAttribute('target', '_blank');
     urls.push({
       href: urlElement.href,
       selector: `h2 .a-link-normal.a-text-normal[href="${urlElement.getAttribute(
@@ -111,13 +119,29 @@ const getBlocksOnPage = async (page, browser, url) => {
   // await newPage.goto(urls[i]);
   for (let i = 0; i < urls.length; i++) {
     // const newPage = await browser.newPage();
-    await page.click(urls[i].selector);
+    await page.evaluate(() => {
+      setInterval(slctr => {
+        document.querySelector(slctr).scrollBy(0, 10);
+      }, 100);
+    }, urls[i].selector);
+    await waiter(page);
+    await page.evaluate(
+      selector => document.querySelector(selector).click(),
+      urls[i].selector
+    );
+
+    console.log('here0');
     await page.waitFor(1000);
     const newPage = await getPageByUrl(browser, urls[i].href);
-    const data = await getMerchant(newPage, page.url());
-    products.push(data);
+    const pagessi = await browser.pages();
+    const data = await getMerchant(newPage, url);
+    if (Object.keys(data).length) {
+      products.push(data);
+    }
   }
-  await writeRecord(products);
+  if (products.length) {
+    await writeRecord(products);
+  }
 };
 
 const getMerchant = async (page, url) => {
@@ -147,7 +171,8 @@ const getMerchant = async (page, url) => {
     await page.close();
     return response;
   } catch (e) {
-    return undefined;
+    console.error('get merchant:', e);
+    return {};
   }
 };
 

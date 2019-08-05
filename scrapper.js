@@ -20,7 +20,7 @@ const scrapDataByBatch = async data => {
       '159.203.87.130:3128'
     ];
     for (let i = 1; i < data.length; i += 1) {
-      await scrapRow(data[i], proxyServers[1], i);
+      await scrapRow(data[i], proxyServers[0], i);
     }
   }
   catch (e) {

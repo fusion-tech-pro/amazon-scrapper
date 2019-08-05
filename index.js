@@ -1,4 +1,4 @@
-const {useDataFromFile} = require('./parser');
+const {useDataFromFile} = require('./csvWorker');
 const { scrapData, scrapRow } = require('./scrapper');
 
 useDataFromFile('./query_result.csv', scrapRow );

@@ -6,7 +6,7 @@ const useDataFromFile = async (filename, callback) => {
   fs.createReadStream(filename)
   .pipe(csv())
   .on('data', (data) => results.push(data))
-  .on('end', () => callback(results[1]));
+  .on('end', () => callback(results[5]));
 };
 
 module.exports = {

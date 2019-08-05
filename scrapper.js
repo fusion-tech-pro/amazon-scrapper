@@ -2,17 +2,17 @@ const puppeteer = require('puppeteer');
 
 const scrapData = (data) => Promise.all(data.map(el => scrapRow(el)));
 
-const scrapRow = async ({id, storefront_url, name} = {} ) => {
+const scrapRow = async ({id, storefront_url:url, name} = {} ) => {
   try {
     const browser = await puppeteer.launch(
       {
         headless: false,
-        args: [ '--proxy-server=https=167.99.63.67:8888' ],
+        args: [ '--proxy-server=https=159.203.87.130:3128' ],
         devtools: true
       });
     const page = await browser.newPage();
-    await page.goto(storefront_url);
-    const data = await getBlocksOnPage(page, browser);
+    await page.goto(url);
+    const data = await getBlocksOnPage(page, browser, url);
 
     // await browser.close();
   } catch (e) {
@@ -41,43 +41,45 @@ const getElementsOnPage = () => {
   return  urls;
 }
 
-const getBlocksOnPage = async (page, browser) => {
+const getBlocksOnPage = async (page, browser, url) => {
   await page.evaluate(() => document.getElementById('products-link').children[0].click());
   await page.waitForNavigation({ waitUntil: 'networkidle0' })
   const urls = await page.evaluate(getElementsOnPage);
-  let pages = [];
-  for(let i=0; i< urls.length; i++){
+  const products = []
+  for(let i = 0; i < urls.length; i++){
     const newPage = await browser.newPage();
     await newPage.goto(urls[i]);
+    const data = await getMerchant(newPage, url)
+    products.push(data);
   }
-  const promisePages = await urls.map((el) =>
-    browser.newPage()
-    .then((page) => {
-      page.goto(el);
-    })
-  );
-  pages = await Promise.all(promisePages);
-
-  console.log('abra',  pages );
-  const data = await getMerchant(pages);
-  return  data;
+  return  products;
 }
 
-const getMerchant = async (pages) => {
+const getMerchant = async (page, url) => {
   const sellers = [];
-  for (let i=0; i< pages.length; i++){
-    const data = await pages[i].evaluate(() => (
-      {
-        seller: document.getElementById('sellerProfileTriggerId'),
-        delivery: document.getElementById('SSOFpopoverLink').innerText,
-        path: location.pathname,
+    await page.waitForSelector('#sellerProfileTriggerId');
+    const data = await page.evaluate(() => {
+      const seller = document.getElementById('sellerProfileTriggerId') || {};
+      const delivery = document.getElementById('SSOFpopoverLink') || {};
+      const { innerText: sellerName = '' } = seller;
+      const { innerText: deliveryName = '' } = delivery;
+      return {
+        sellerName,
+        deliveryName,
+        path: location.pathname || '',
       }
-    ));
-    if(!data.delivery.includes('Amazon')){
-      sellers.push(data)
+    });
+    const {sellerName, deliveryName } = data;
+
+    if(!sellerName.includes('Amazon') && !deliveryName.includes('Amazon')){
+      sellers.push({
+        name: sellerName,
+        storefront_url: url,
+        productPage: path,
+      })
     }
-    await pages[i].close();
-  }
+    await page.close();
+
   return sellers;
 }
 

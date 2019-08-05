@@ -69,7 +69,7 @@ const getMerchant = async (page, url) => {
         path: location.pathname || '',
       }
     });
-    const {sellerName, deliveryName } = data;
+    const {sellerName, deliveryName, path } = data;
 
     if(!sellerName.includes('Amazon') && !deliveryName.includes('Amazon')){
       sellers.push({

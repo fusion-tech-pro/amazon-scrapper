@@ -3,6 +3,30 @@ const { writeRecord } = require('./csvWorker');
 
 const scrapData = (data) => Promise.all(data.map(el => scrapRow(el)));
 
+const scrapDataByBatch = async (data) => {
+  try {
+    const vpnServers = [
+      '159.203.87.130:3128',
+      '165.22.236.64:8080',
+      '167.99.63.67:8888',
+      '159.203.87.130:3128'
+    ];
+    for (let i = 1; i < data.length; i += 4) {
+      const promises = [
+        scrapRow(data[i], vpnServers[0]),
+        scrapRow(data[i + 1], vpnServers[1]),
+        scrapRow(data[i + 2], vpnServers[2]),
+        scrapRow(data[i + 3], vpnServers[3]),
+      ]
+      await Promise.all(promises);
+    }
+  }
+  catch (e) {
+    console.log('error', e);
+  }
+
+}
+
 const scrapRow = async ({ id, storefront_url: url, name, } = {}, server = `159.203.87.130:3128`) => {
   try {
     const browser = await puppeteer.launch(
@@ -90,6 +114,6 @@ const getMerchant = async (page, url) => {
 }
 
 module.exports = {
-  scrapData,
+  scrapDataByBatch,
   scrapRow,
 }

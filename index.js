@@ -1,4 +1,4 @@
 const { startScrapper } = require('./csvWorker');
-const { scrapData, scrapRow } = require('./scrapper');
+const { scrapDataByBatch, scrapRow } = require('./scrapper');
 
-startScrapper('./query_result.csv', scrapRow);
+startScrapper('./query_result.csv', scrapDataByBatch);

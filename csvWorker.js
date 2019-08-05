@@ -7,7 +7,7 @@ const startScrapper = (filename, callback) => {
   fs.createReadStream(filename)
   .pipe(csv())
   .on('data', (data) => results.push(data))
-  .on('end', () => callback(results[5]));
+  .on('end', () => callback(results));
 };
 
 const writeRecord = async (records) => {

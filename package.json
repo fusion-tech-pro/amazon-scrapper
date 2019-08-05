@@ -1,0 +1,17 @@
+{
+  "name": "scrapper",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon index.js"
+  },
+  "author": "Eugen Gulyaev",
+  "license": "ISC",
+  "dependencies": {
+    "csv-parser": "^2.3.0",
+    "fs": "0.0.1-security",
+    "puppeteer": "^1.19.0"
+  }
+}

@@ -13,10 +13,10 @@ const scrapDataByBatch = async (data) => {
     ];
     for (let i = 1; i < data.length; i += 4) {
       const promises = [
-        scrapRow(data[i], vpnServers[0]),
-        scrapRow(data[i + 1], vpnServers[1]),
-        scrapRow(data[i + 2], vpnServers[2]),
-        scrapRow(data[i + 3], vpnServers[3]),
+        scrapRow(data[i], vpnServers[0], i),
+        scrapRow(data[i + 1], vpnServers[1], i + 1),
+        scrapRow(data[i + 2], vpnServers[2], i + 2),
+        scrapRow(data[i + 3], vpnServers[3], i + 3),
       ]
       await Promise.all(promises);
     }
@@ -27,13 +27,13 @@ const scrapDataByBatch = async (data) => {
 
 }
 
-const scrapRow = async ({ id, storefront_url: url, name, } = {}, server = `159.203.87.130:3128`) => {
+const scrapRow = async ({ id, storefront_url: url, name, } = {}, server = `159.203.87.130:3128`, position) => {
   try {
     const browser = await puppeteer.launch(
       {
-        headless: false,
-        args: [`--proxy-server=https=${server}`],
-        devtools: true
+        // devtools: true,
+        // headless: false,
+        args: [`--proxy-server=https=${server}`]
       });
     const page = await browser.newPage();
     await page.goto(url);
@@ -46,6 +46,8 @@ const scrapRow = async ({ id, storefront_url: url, name, } = {}, server = `159.2
     await page.evaluate(() => document.getElementsByClassName('a-normal')[1].children[0].click());
     await getBlocksOnPage(page, browser, url);
     await browser.close();
+    console.log('position', position);
+    console.log('id', id);
   }
   catch (e) {
     console.log('abra', e);
@@ -88,29 +90,35 @@ const getBlocksOnPage = async (page, browser, url) => {
 
 const getMerchant = async (page, url) => {
   let response = {};
-  await page.waitForSelector('#sellerProfileTriggerId');
-  const data = await page.evaluate(() => {
-    const seller = document.getElementById('sellerProfileTriggerId') || {};
-    const delivery = document.getElementById('SSOFpopoverLink') || {};
-    const { innerText: sellerName = '' } = seller;
-    const { innerText: deliveryName = '' } = delivery;
-    return {
-      sellerName,
-      deliveryName,
-      path: location.pathname || '',
-    }
-  });
-  const { sellerName, deliveryName, path } = data;
+  try {
+    await page.waitForSelector('#sellerProfileTriggerId', { timeout: 2000 });
+    const data = await page.evaluate(() => {
+      const seller = document.getElementById('sellerProfileTriggerId') || {};
+      const delivery = document.getElementById('SSOFpopoverLink') || {};
+      const { innerText: sellerName = '' } = seller;
+      const { innerText: deliveryName = '' } = delivery;
+      return {
+        sellerName,
+        deliveryName,
+        path: location.pathname || '',
+      }
+    });
+    const { sellerName, deliveryName, path } = data;
 
-  if (!sellerName.includes('Amazon') && !deliveryName.includes('Amazon')) {
-    response = {
-      name: sellerName,
-      storefront_url: url,
-      productPage: path,
+    if (!sellerName.includes('Amazon') && !deliveryName.includes('Amazon')) {
+      response = {
+        name: sellerName,
+        storefront_url: url,
+        productPage: path,
+      }
     }
+    await page.close();
+    return response;
   }
-  await page.close();
-  return response;
+  catch (e) {
+    return undefined;
+  }
+
 }
 
 module.exports = {

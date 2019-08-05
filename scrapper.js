@@ -1,14 +1,14 @@
 const puppeteer = require('puppeteer');
-const {writeRecord} = require('./csvWorker');
+const { writeRecord } = require('./csvWorker');
 
 const scrapData = (data) => Promise.all(data.map(el => scrapRow(el)));
 
-const scrapRow = async ({ id, storefront_url: url, name } = {}) => {
+const scrapRow = async ({ id, storefront_url: url, name, } = {}, server = `159.203.87.130:3128`) => {
   try {
     const browser = await puppeteer.launch(
       {
         headless: false,
-        args: ['--proxy-server=https=159.203.87.130:3128'],
+        args: [`--proxy-server=https=${server}`],
         devtools: true
       });
     const page = await browser.newPage();
@@ -16,10 +16,10 @@ const scrapRow = async ({ id, storefront_url: url, name } = {}) => {
     await page.evaluate(() => document.getElementById('products-link').children[0].click());
     await getBlocksOnPage(page, browser, url);
     // click to Page(2)
-    await page.evaluate(() =>  document.getElementsByClassName('a-normal')[0].children[0].click());
+    await page.evaluate(() => document.getElementsByClassName('a-normal')[0].children[0].click());
     await getBlocksOnPage(page, browser, url);
     // click to Page(3)
-    await page.evaluate(() =>  document.getElementsByClassName('a-normal')[1].children[0].click());
+    await page.evaluate(() => document.getElementsByClassName('a-normal')[1].children[0].click());
     await getBlocksOnPage(page, browser, url);
     await browser.close();
   }

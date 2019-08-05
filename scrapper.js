@@ -1,9 +1,15 @@
 const puppeteer = require('puppeteer');
 const { writeRecord } = require('./csvWorker');
 
-const scrapData = (data) => Promise.all(data.map(el => scrapRow(el)));
+const scrapData = data => Promise.all(data.map(el => scrapRow(el)));
 
-const scrapDataByBatch = async (data) => {
+const getPageByUrl = async (browser, url) => {
+  const pages = await browser.pages();
+  const page = pages.find(el => el.url() == url);
+  return page;
+};
+
+const scrapDataByBatch = async data => {
   try {
     const vpnServers = [
       '159.203.87.130:3128',
@@ -16,50 +22,66 @@ const scrapDataByBatch = async (data) => {
         scrapRow(data[i], vpnServers[0], i),
         scrapRow(data[i + 1], vpnServers[1], i + 1),
         scrapRow(data[i + 2], vpnServers[2], i + 2),
-        scrapRow(data[i + 3], vpnServers[3], i + 3),
-      ]
+        scrapRow(data[i + 3], vpnServers[3], i + 3)
+      ];
       await Promise.all(promises);
     }
-  }
-  catch (e) {
+  } catch (e) {
     console.log('error', e);
   }
+};
 
-}
-
-const scrapRow = async ({ id, storefront_url: url, name, } = {}, server = `159.203.87.130:3128`, position) => {
+const scrapRow = async (
+  { id, storefront_url: url, name } = {},
+  server = `159.203.87.130:3128`,
+  position
+) => {
   try {
-    const browser = await puppeteer.launch(
-      {
-        // devtools: true,
-        // headless: false,
-        args: [`--proxy-server=https=${server}`]
-      });
+    const browser = await puppeteer.launch({
+      // devtools: true,
+      // headless: false,
+      args: [`--proxy-server=https=${server}`]
+    });
+    browser.on('targetcreated', target => {
+      console.log('created', target);
+      return target.page();
+    });
     const page = await browser.newPage();
     await page.goto(url);
-    await page.evaluate(() => document.getElementById('products-link').children[0].click());
+    await page.evaluate(() =>
+      document.getElementById('products-link').children[0].click()
+    );
     await getBlocksOnPage(page, browser, url);
     // click to Page(2)
-    await page.evaluate(() => document.getElementsByClassName('a-normal')[0].children[0].click());
+    await page.evaluate(() =>
+      document.getElementsByClassName('a-normal')[0].children[0].click()
+    );
     await getBlocksOnPage(page, browser, url);
     // click to Page(3)
-    await page.evaluate(() => document.getElementsByClassName('a-normal')[1].children[0].click());
+    await page.evaluate(() =>
+      document.getElementsByClassName('a-normal')[1].children[0].click()
+    );
     await getBlocksOnPage(page, browser, url);
     await browser.close();
     console.log('position', position);
     console.log('id', id);
-  }
-  catch (e) {
+  } catch (e) {
     console.log('abra', e);
-    return undefined
+    return undefined;
   }
-}
+};
 
 const getElementsOnPage = () => {
-  const elements = document.getElementsByClassName('a-section a-spacing-medium');
+  const elements = document.getElementsByClassName(
+    'a-section a-spacing-medium'
+  );
   const urls = [];
   for (let i = 0; i < elements.length - 2; i++) {
-    if (!elements[i].getElementsByClassName('aok-inline-block s-image-logo-view').length) continue;
+    if (
+      !elements[i].getElementsByClassName('aok-inline-block s-image-logo-view')
+        .length
+    )
+      continue;
     const rows = elements[i].getElementsByClassName('a-row');
     let haveAmazon = false;
     for (let index = 0; index < rows.length; index++) {
@@ -69,24 +91,34 @@ const getElementsOnPage = () => {
       }
     }
     if (haveAmazon) continue;
-    let url = elements[i].getElementsByClassName('a-link-normal a-text-normal')[0].href;
-    urls.push(url);
+    let urlElement = elements[i].getElementsByClassName(
+      'a-link-normal a-text-normal'
+    )[0];
+    urls.push({
+      href: urlElement.href,
+      selector: `h2 .a-link-normal.a-text-normal[href="${urlElement.getAttribute(
+        'href'
+      )}"]`
+    });
   }
   return urls;
-}
+};
 
 const getBlocksOnPage = async (page, browser, url) => {
-  await page.waitForNavigation({ waitUntil: 'networkidle0' })
+  await page.waitForNavigation({ waitUntil: 'networkidle0' });
   const urls = await page.evaluate(getElementsOnPage);
   const products = [];
+  // await newPage.goto(urls[i]);
   for (let i = 0; i < urls.length; i++) {
-    const newPage = await browser.newPage();
-    await newPage.goto(urls[i]);
-    const data = await getMerchant(newPage, url);
+    // const newPage = await browser.newPage();
+    await page.click(urls[i].selector);
+    await page.waitFor(1000);
+    const newPage = await getPageByUrl(browser, urls[i].href);
+    const data = await getMerchant(newPage, page.url());
     products.push(data);
   }
   await writeRecord(products);
-}
+};
 
 const getMerchant = async (page, url) => {
   let response = {};
@@ -100,8 +132,8 @@ const getMerchant = async (page, url) => {
       return {
         sellerName,
         deliveryName,
-        path: location.pathname || '',
-      }
+        path: location.pathname || ''
+      };
     });
     const { sellerName, deliveryName, path } = data;
 
@@ -109,19 +141,17 @@ const getMerchant = async (page, url) => {
       response = {
         name: sellerName,
         storefront_url: url,
-        productPage: path,
-      }
+        productPage: path
+      };
     }
     await page.close();
     return response;
-  }
-  catch (e) {
+  } catch (e) {
     return undefined;
   }
-
-}
+};
 
 module.exports = {
   scrapDataByBatch,
-  scrapRow,
-}
+  scrapRow
+};

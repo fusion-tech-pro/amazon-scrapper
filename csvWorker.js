@@ -1,6 +1,7 @@
 const csv = require('csv-parser');
-const { createObjectCsvWriter } = require('csv-writer');
 const fs = require('fs');
+const csvWriter = require('csv-write-stream');
+
 
 const useDataFromFile = (filename, callback) => {
   const results = [];
@@ -10,15 +11,14 @@ const useDataFromFile = (filename, callback) => {
   .on('end', () => callback(results[5]));
 };
 
-const writeRecord = () => {
-  const csvWriter = createObjectCsvWriter({
-    path: 'query_result.csv',
-    header: [
-      {id: 'name', title: 'NAME'},
-      {id: 'storefront_url', title: 'URL'},
-      {id: 'productPage',  title: 'Product Page' }
-    ]
-  });
+const writeRecord =  async (records) => {
+  const  writer = csvWriter({ headers: ['name', 'storefront_url', 'productPage']});
+  writer.pipe(fs.createWriteStream('query_result_after_scrapper.csv', {flags: 'a'}));
+  for (let i= 0; i< records.length; i++){
+    console.log('abra',  records[i] );
+    writer.write(records[i])
+  }
+  writer.end();
 }
 
 module.exports = {

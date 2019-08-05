@@ -1,7 +1,7 @@
-const {useDataFromFile} = require('./csvWorker');
+const { useDataFromFile } = require('./csvWorker');
 const { scrapData, scrapRow } = require('./scrapper');
 
-useDataFromFile('./query_result.csv', scrapRow );
+useDataFromFile('./query_result.csv', scrapRow);
 
 // const data = getDataFromFile('./query_result.csv');
 // console.log('abra',  data );

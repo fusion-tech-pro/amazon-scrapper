@@ -13,10 +13,14 @@ const startScrapper = (filename, callback) => {
   .on('end', () => callback(results));
 
 };
-const writeRecord = async (records) => {
+const writeRecords = (records) => {
   for (let i = 0; i < records.length; i++) {
     writer.write(records[i])
   }
+}
+
+const writeRecord = (data) => {
+  writer.write(data)
 }
 
 module.exports = {

@@ -47,12 +47,20 @@ const scrapRow = async (
     await page.evaluate(() =>
       document.getElementById('products-link').children[0].click()
     );
-    await getBlocksOnPage(page, browser, url);
+    let response = await getBlocksOnPage(page, browser, url);
+    if(response) {
+      await browser.close();
+      return;
+    }
     // click to Page(2)
     await page.evaluate(() =>
       document.getElementsByClassName('a-normal')[0].children[0].click()
     );
-    await getBlocksOnPage(page, browser, url);
+    response = await getBlocksOnPage(page, browser, url);
+    if(response) {
+      await browser.close();
+      return;
+    }
     // click to Page(3)
     await page.evaluate(() =>
       document.getElementsByClassName('a-normal')[1].children[0].click()
@@ -122,12 +130,11 @@ const getBlocksOnPage = async (page, browser, url) => {
     const newPage = await getPageByUrl(browser, urls[i].href);
     const data = await getMerchant(newPage, url);
     if(Object.keys(data).length) {
-      products.push(data);
+      writeRecord(data);
+      return true;
     }
   }
-  if (products.length) {
-    await writeRecord(products);
-  }
+  return;
 };
 
 const getMerchant = async (page, url) => {

@@ -2,6 +2,8 @@ const csv = require('csv-parser');
 const fs = require('fs');
 const csvWriter = require('csv-write-stream');
 const writer = csvWriter({ headers: ['name', 'storefront_url', 'productPage'] });
+writer.pipe(fs.createWriteStream('query_result_after_scrapper.csv', { flags: 'a' }));
+
 
 const startScrapper = (filename, callback) => {
   const results = [];
@@ -12,7 +14,6 @@ const startScrapper = (filename, callback) => {
 
 };
 const writeRecord = async (records) => {
-  writer.pipe(fs.createWriteStream('query_result_after_scrapper.csv', { flags: 'a' }));
   for (let i = 0; i < records.length; i++) {
     writer.write(records[i])
   }

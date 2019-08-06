@@ -33,12 +33,12 @@ const scrapRow = async (
   server = `159.203.87.130:3128`,
   position
 ) => {
+  const browser = await puppeteer.launch({
+    // devtools: true,
+    headless: false,
+    args: [`--proxy-server=https=${server}`]
+  });
   try {
-    const browser = await puppeteer.launch({
-      // devtools: true,
-      headless: false,
-      args: [`--proxy-server=https=${server}`]
-    });
     browser.on('targetcreated', target => {
       return target.page();
     });
@@ -63,6 +63,7 @@ const scrapRow = async (
     console.log('id', id);
   }
   catch (e) {
+    await browser.close();
     console.error('scrapRow error', e);
     return undefined;
   }
@@ -120,7 +121,7 @@ const getBlocksOnPage = async (page, browser, url) => {
     await page.waitFor(1000);
     const newPage = await getPageByUrl(browser, urls[i].href);
     const data = await getMerchant(newPage, url);
-    if (Object.keys(data).length) {
+    if(Object.keys(data).length) {
       products.push(data);
     }
   }
@@ -138,25 +139,22 @@ const getMerchant = async (page, url) => {
       const delivery = document.getElementById('SSOFpopoverLink') || {};
       const { innerText: sellerName = '' } = seller;
       const { innerText: deliveryName = '' } = delivery;
-      return {
-        sellerName,
-        deliveryName,
-        path: location.pathname || ''
-      };
+      return { sellerName, deliveryName };
     });
-    const { sellerName, deliveryName, path } = data;
+    const { sellerName, deliveryName } = data;
 
     if (!sellerName.includes('Amazon') && !deliveryName.includes('Amazon')) {
       response = {
         name: sellerName,
         storefront_url: url,
-        productPage: path
+        productPage: page.url()
       };
     }
     await page.close();
     return response;
   }
   catch (e) {
+    await page.close();
     console.error('get merchant error:', e);
     return {};
   }

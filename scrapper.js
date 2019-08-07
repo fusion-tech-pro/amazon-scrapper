@@ -26,13 +26,23 @@ class Scrapper {
     this.quantityPages = quantityPages;
   }
 
+  /**
+   * This function will start Scrapper
+   * @returns {Promise<void>}
+   */
   async startScrapper() {
     for (let i = this.start; i < this.data.length; i += 1) {
       this.position = i;
       await this.scrapRow(this.data[i]);
     }
+    this.printInformationAboutEvent(this.data.length, 'End')
   }
 
+  /**
+   * It's decorator for puppeteer browser
+   * @param options
+   * @returns {Promise<void>}
+   */
   async createBrowser(
     options = {
       // devtools: true,
@@ -48,6 +58,10 @@ class Scrapper {
     }
   }
 
+  /**
+   * Go to Products
+   * @returns {Promise<void>}
+   */
   async goToProducts() {
     await this.currentPage.goto(this.currentUrl);
     await this.currentPage.evaluate(() =>
@@ -55,6 +69,11 @@ class Scrapper {
     );
   }
 
+  /**
+   * Go to next Page
+   * @param page, number of Page
+   * @returns {Promise<void>}
+   */
   async goToNextPage(page = 0) {
     // page = 0 click for 2  page = 1 click for 3 and etc
     await this.currentPage.evaluate(
@@ -64,6 +83,13 @@ class Scrapper {
     );
   }
 
+  /**
+   * * It's decorator for puppeteer page.wait
+   * @param type it's wait type
+   * @param page it's page, which puppeteer selected
+   * @param max it's max time for randomize wait
+   * @returns {Promise<void>}
+   */
   async waitPage(type, page = this.currentPage, max = 7) {
     if (type === sleepTypes.navigation) {
       await page.waitForNavigation({ waitUntil: "networkidle0" });
@@ -84,6 +110,10 @@ class Scrapper {
     await page.waitFor(getRandomInt(max));
   }
 
+  /**
+   * This method use in chromium through page.evaluate
+   * @returns {[]} Array with urls(selected products)
+   */
   getUrls() {
     const elements = document.getElementsByClassName(
       "a-section a-spacing-medium"
@@ -119,11 +149,21 @@ class Scrapper {
     return urls;
   }
 
+  /**
+   * get Page by url
+   * @param url - url e.g http://google.com
+   * @returns {Promise<?AXNode|number|bigint|Promise<*>|any>}
+   */
   async getPageByUrl(url) {
     const pages = await this.browser.pages();
     return pages.find(el => el.url() === url);
   }
 
+  /**
+   * get Merchant and Delivery if Merchant or Delivery includes Amazon, then go out
+   * @param page it's page, which puppeteer selected
+   * @returns {Promise<{}>}
+   */
   async getMerchant(page) {
     try {
       let response = {};
@@ -152,6 +192,11 @@ class Scrapper {
     }
   }
 
+  /**
+   * get Product page by url
+   * @param url
+   * @returns {Promise<Promise<?AXNode|number|bigint|Promise<*>|any>|undefined>}
+   */
   async getProductPage(url) {
     try {
       await this.currentPage.evaluate(() => {
@@ -172,7 +217,11 @@ class Scrapper {
     }
   }
 
-  async getBlocksOnPage() {
+  /**
+   * Function for check page. Is there a page with products
+   * @returns {Promise<boolean>}
+   */
+  async hasSuitableProductOnPage() {
     await this.waitPage(sleepTypes.navigation);
     const urls = await this.currentPage.evaluate(this.getUrls);
     for (let i = 0; i < urls.length; i++) {
@@ -186,6 +235,11 @@ class Scrapper {
     }
   }
 
+  /**
+   * Print information and event name
+   * @param id
+   * @param event
+   */
   printInformationAboutEvent(id, event) {
     console.log(`--------------------${event}---------------------`);
     console.log("position", this.position);
@@ -193,6 +247,13 @@ class Scrapper {
     console.log(`--------------------${event}---------------------`);
   }
 
+  /**
+   * Scrap current row
+   * @param id id from doc.csv
+   * @param url url from doc.csv
+   * @param name name from doc.csv
+   * @returns {Promise<void>}
+   */
   async scrapRow({ id, storefront_url: url, name } = {}) {
     try {
       await this.createBrowser({
@@ -211,7 +272,7 @@ class Scrapper {
         if (index) {
           this.goToNextPage();
         }
-        let response = await this.getBlocksOnPage();
+        let response = await this.hasSuitableProductOnPage();
         if (response) return;
       }
     } catch (e) {

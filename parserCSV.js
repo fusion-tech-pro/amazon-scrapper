@@ -8,6 +8,11 @@ class ParserCSV {
     this.callback = callback;
   }
 
+  /**
+   * Start scrap data, get row from input file, and use callback for this data
+   * @param inputFilename
+   * @param callback
+   */
   startScrapper({ inputFilename, callback } = {}) {
     const results = [];
     if (!inputFilename) {

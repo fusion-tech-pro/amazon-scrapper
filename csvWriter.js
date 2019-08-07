@@ -13,6 +13,10 @@ class WriterCSV {
     }
   }
 
+  /**
+   * Write record
+   * @param data e.g record = {name: 'name', storefront_url: 'google.com', productPage: 'google.com' }
+   */
   writeRecord(data) {
     this.writer.write(data);
   }

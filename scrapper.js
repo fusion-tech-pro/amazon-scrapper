@@ -266,7 +266,7 @@ class Scrapper {
           await this.goToProducts();
         }
         if (index) {
-          this.goToNextPage();
+          this.goToNextPage(index-1);
         }
         let response = await this.hasSuitableProductOnPage();
         if (response) return;

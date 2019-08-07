@@ -256,11 +256,7 @@ class Scrapper {
    */
   async scrapRow({ id, storefront_url: url, name } = {}) {
     try {
-      await this.createBrowser({
-        // devtools: true,
-        headless: false,
-        args: [`--proxy-server=https=${this.selectedProxy}`]
-      });
+      await this.createBrowser();
       this.currentPage = await this.browser.newPage();
       this.currentUrl = url;
       this.printInformationAboutEvent(id, "Start");

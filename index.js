@@ -1,4 +1,4 @@
-const { startScrapper } = require('./csvWorker');
-const { scrapDataByBatch, scrapRow } = require('./scrapper');
+const ParserCSV = require('./parserCSV');
 
-startScrapper('./query_result.csv', scrapDataByBatch);
+const parser = new ParserCSV('./query_result.csv');
+parser.startScrapper();

@@ -12,13 +12,14 @@ class Scrapper {
     data,
     proxies,
     selectedProxy = -1,
+    proxy,
     start = 1,
     filename = "shops.csv",
     quantityPages = 3
   } = {}) {
     this.data = data;
     const proxiesDefault = ["159.203.87.130:3128", "167.99.63.67:8888"];
-    this.selectedProxy =
+    this.selectedProxy = proxy ? proxy :
       selectedProxy > -1 ? proxies[selectedProxy] : proxiesDefault[0];
     this.proxies = [...proxiesDefault, proxies];
     this.start = start;
@@ -35,7 +36,7 @@ class Scrapper {
       this.position = i;
       await this.scrapRow(this.data[i]);
     }
-    this.printInformationAboutEvent(this.data.length, 'End')
+    this.printInformationAboutEvent(this.data.length, "End");
   }
 
   /**
@@ -266,7 +267,7 @@ class Scrapper {
           await this.goToProducts();
         }
         if (index) {
-          this.goToNextPage(index-1);
+          this.goToNextPage(index - 1);
         }
         let response = await this.hasSuitableProductOnPage();
         if (response) return;

@@ -3,9 +3,20 @@ const fs = require("fs");
 const Scrapper = require("./scrapper");
 
 class ParserCSV {
-  constructor(inputFilename, callback) {
+  constructor({
+    inputFilename,
+    callback,
+    start = 1,
+    outputFilename = "output.csv",
+    quantityPages = 3,
+    proxy
+  } = {}) {
     this.inputFilename = inputFilename;
     this.callback = callback;
+    this.start = start;
+    this.outputFilename = outputFilename;
+    this.quantityPages = quantityPages;
+    this.proxy = proxy;
   }
 
   /**
@@ -28,7 +39,10 @@ class ParserCSV {
         if (!callback) {
           const scrapper = new Scrapper({
             data: results,
-            start: 1
+            start: +this.start,
+            filename: this.outputFilename,
+            quantityPages: +this.quantityPages,
+            proxy: this.proxy
           });
           await scrapper.startScrapper();
           return;

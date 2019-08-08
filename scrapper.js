@@ -1,10 +1,15 @@
 const puppeteer = require("puppeteer");
+const proxyList = require("proxy-lists");
 const writerCSV = require("./csvWriter");
 
 const sleepTypes = {
   navigation: "navigation",
   sleep: "sleep",
   select: "select"
+};
+
+const errors = {
+  ERR_PROXY_CONNECTION_FAILED: "ERR_PROXY_CONNECTION_FAILED"
 };
 
 class Scrapper {
@@ -18,13 +23,68 @@ class Scrapper {
     quantityPages = 3
   } = {}) {
     this.data = data;
-    const proxiesDefault = ["159.203.87.130:3128", "167.99.63.67:8888"];
-    this.selectedProxy = proxy ? proxy :
-      selectedProxy > -1 ? proxies[selectedProxy] : proxiesDefault[0];
-    this.proxies = [...proxiesDefault, proxies];
+    this.setProxy(proxy, proxies, selectedProxy);
+    this.getProxies();
     this.start = start;
     this.writer = new writerCSV(filename);
     this.quantityPages = quantityPages;
+    this.position = 0;
+  }
+
+  /**
+   * Set
+   * @param proxy
+   * @param proxies
+   * @param selectedProxy
+   */
+  setProxy(proxy, proxies = [], selectedProxy = -1) {
+    const proxiesDefault = ["159.203.87.130:3128", "167.99.63.67:8888"];
+    if (proxy) {
+      this.selectedProxy = -1;
+      this.proxy = proxy;
+      return;
+    }
+
+    if (selectedProxy > 0) {
+      this.proxy = proxies[selectedProxy];
+      this.proxies = [...proxies, ...proxiesDefault];
+      this.selectedProxy = selectedProxy;
+      return;
+    }
+
+    this.selectedProxy = 0;
+    this.proxy = proxiesDefault[0];
+    this.proxies = [...proxiesDefault, ...proxies];
+  }
+
+  /**
+   * Get Proxies for scrapper
+   */
+  getProxies() {
+    proxyList
+      .getProxies({
+        countries: ["us"],
+        protocol: ["https"]
+      })
+      .on("data", proxies => {
+        // Received some proxies.
+        const newProxies = proxies.map(
+          ({ ipAddress, port } = {}) => `${ipAddress}:${port}`
+        );
+        this.proxies = [...this.proxies, ...newProxies];
+      })
+      .on("error", function(error) {
+        // Some error has occurred.
+        console.log("error in Proxies!", error);
+      });
+  }
+
+  /**
+   * set current Proxy
+   */
+  setNextProxy() {
+    this.selectedProxy += 1;
+    this.proxy = this.proxies[this.selectedProxy];
   }
 
   /**
@@ -48,7 +108,7 @@ class Scrapper {
     options = {
       // devtools: true,
       headless: false,
-      args: [`--proxy-server=https=${this.selectedProxy}`]
+      args: [`--proxy-server=https=${this.proxy}`]
     }
   ) {
     try {
@@ -78,8 +138,7 @@ class Scrapper {
   async goToNextPage(page = 0) {
     // page = 0 click for 2  page = 1 click for 3 and etc
     await this.currentPage.evaluate(
-      page =>
-        document.getElementsByClassName("a-normal")[page].children[0].click(),
+      page => document.getElementsByClassName("a-normal")[page].children[0].click(),
       page
     );
   }
@@ -275,6 +334,10 @@ class Scrapper {
     } catch (e) {
       console.error("Please check scrapRow method", e);
       this.printInformationAboutEvent(id, "Not Found Products");
+
+      this.setNextProxy();
+      await this.scrapRow({ id, storefront_url: url, name });
+
     }
     await this.browser.close();
   }

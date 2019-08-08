@@ -94,7 +94,11 @@ class Scrapper {
   async startScrapper() {
     for (let i = this.start; i < this.data.length; i += 1) {
       this.position = i;
-      await this.scrapRow(this.data[i]);
+      const flag = await this.scrapRow(this.data[i]);
+      if(!flag){
+        this.printInformationAboutEvent(this.data.length, "End Proxies");
+        return
+      }
     }
     this.printInformationAboutEvent(this.data.length, "End");
   }
@@ -312,7 +316,7 @@ class Scrapper {
    * @param id id from doc.csv
    * @param url url from doc.csv
    * @param name name from doc.csv
-   * @returns {Promise<void>}
+   * @returns {Promise<boolean>}
    */
   async scrapRow({ id, storefront_url: url, name } = {}) {
     try {
@@ -329,17 +333,18 @@ class Scrapper {
           this.goToNextPage(index - 1);
         }
         let response = await this.hasSuitableProductOnPage();
-        if (response) return;
+        if (response) return true;
       }
     } catch (e) {
       console.error("Please check scrapRow method", e);
       this.printInformationAboutEvent(id, "Not Found Products");
-
+      if(this.proxies.length === this.selectedProxy) return false;
+      await this.browser.close();
       this.setNextProxy();
       await this.scrapRow({ id, storefront_url: url, name });
-
     }
     await this.browser.close();
+    return true;
   }
 }
 
